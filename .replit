@@ -1,0 +1,8 @@
+modules = ["python-3.12", "python-3.10"]
+run = "python pong.py"
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["sh", "-c", "run = \"python pong.py\""]
