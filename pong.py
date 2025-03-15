@@ -8,11 +8,11 @@ pygame.init()
 # Constants
 WIDTH = 800
 HEIGHT = 600
-PADDLE_WIDTH = 15
-PADDLE_HEIGHT = 90
+SPRITE_WIDTH = 50  # Width of the sprite images
+SPRITE_HEIGHT = 90  # Height of the sprite images
 BALL_SIZE = 15
 BALL_SPEED = 4
-PADDLE_SPEED = 6  # Speed for both players
+PLAYER_SPEED = 6  # Speed for both players
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
@@ -23,21 +23,26 @@ pygame.display.set_caption("Pong")
 # Clock for controlling game framerate
 clock = pygame.time.Clock()
 
-class Paddle:
-    def __init__(self, x, y):
-        self.rect = pygame.Rect(x, y, PADDLE_WIDTH, PADDLE_HEIGHT)
-        self.color = WHITE  # Initial color
+class Player:
+    def __init__(self, x, y, image_path):
+        # Load and convert the image with alpha channel
+        self.original_image = pygame.image.load(image_path).convert_alpha()
+        self.image = pygame.transform.scale(self.original_image, (SPRITE_WIDTH, SPRITE_HEIGHT))
+        # Set the colorkey to the background color (assuming white for now)
+        self.image.set_colorkey((255, 255, 255))  # White background
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.color = WHITE  # Used for ball color change logic
 
     def move(self, dy):
         self.rect.y += dy
-        # Keep paddle within screen bounds
+        # Keep player within screen bounds
         if self.rect.y < 0:
             self.rect.y = 0
-        if self.rect.y > HEIGHT - PADDLE_HEIGHT:
-            self.rect.y = HEIGHT - PADDLE_HEIGHT
+        if self.rect.y > HEIGHT - SPRITE_HEIGHT:
+            self.rect.y = HEIGHT - SPRITE_HEIGHT
 
     def draw(self):
-        pygame.draw.rect(screen, self.color, self.rect)
+        screen.blit(self.image, self.rect)
 
 class Ball:
     def __init__(self):
@@ -61,22 +66,22 @@ def start_screen():
     title = font.render("Pong", True, WHITE)
     font = pygame.font.Font(None, 36)
     instruction = font.render("Press F to start/stop playing", True, WHITE)
-    controls = font.render("Player 1: UP/DOWN | Player 2: W/S", True, WHITE)
+    controls = font.render("Frog: UP/DOWN | Princess: W/S", True, WHITE)
 
     screen.blit(title, (WIDTH//2 - title.get_width()//2, HEIGHT//3))
     screen.blit(instruction, (WIDTH//2 - instruction.get_width()//2, HEIGHT//2))
     screen.blit(controls, (WIDTH//2 - controls.get_width()//2, HEIGHT//2 + 40))
     pygame.display.flip()
 
-def end_screen(player1_score, player2_score, play_time):
+def end_screen(frog_score, princess_score, play_time):
     screen.fill(BLACK)
     font = pygame.font.Font(None, 50)
-    player1_text = font.render(f"Player 1 Score: {player1_score}", True, WHITE)
-    player2_text = font.render(f"Player 2 Score: {player2_score}", True, WHITE)
+    frog_text = font.render(f"Frog Score: {frog_score}", True, WHITE)
+    princess_text = font.render(f"Princess Score: {princess_score}", True, WHITE)
     time_text = font.render(f"Time Played: {play_time:.1f} seconds", True, WHITE)
 
-    screen.blit(player1_text, (WIDTH//2 - player1_text.get_width()//2, HEIGHT//3))
-    screen.blit(player2_text, (WIDTH//2 - player2_text.get_width()//2, HEIGHT//2))
+    screen.blit(frog_text, (WIDTH//2 - frog_text.get_width()//2, HEIGHT//3))
+    screen.blit(princess_text, (WIDTH//2 - princess_text.get_width()//2, HEIGHT//2))
     screen.blit(time_text, (WIDTH//2 - time_text.get_width()//2, 2*HEIGHT//3))
     pygame.display.flip()
     # Wait briefly to show the end screen (e.g., 2 seconds) before exiting
@@ -94,13 +99,13 @@ def main():
     start_screen()
 
     # Game objects
-    player1 = Paddle(50, HEIGHT//2 - PADDLE_HEIGHT//2)  # Player 1 (left)
-    player2 = Paddle(WIDTH - 50 - PADDLE_WIDTH, HEIGHT//2 - PADDLE_HEIGHT//2)  # Player 2 (right)
+    frog = Player(50, HEIGHT//2 - SPRITE_HEIGHT//2, "frog.png")  # Player 1 (left, frog)
+    princess = Player(WIDTH - 50 - SPRITE_WIDTH, HEIGHT//2 - SPRITE_HEIGHT//2, "princess.png")  # Player 2 (right, princess)
     ball = Ball()
 
     # Scores
-    player1_score = 0
-    player2_score = 0
+    frog_score = 0
+    princess_score = 0
 
     # Time tracking
     start_time = 0
@@ -117,21 +122,21 @@ def main():
                 elif game_started and not game_over:
                     game_over = True
                     play_time = time.time() - start_time
-                    end_screen(player1_score, player2_score, play_time)
+                    end_screen(frog_score, princess_score, play_time)
 
         if game_started and not game_over:
-            # Player 1 movement (left paddle)
+            # Frog movement (left player)
             keys = pygame.key.get_pressed()
             if keys[pygame.K_UP]:
-                player1.move(-PADDLE_SPEED)
+                frog.move(-PLAYER_SPEED)
             if keys[pygame.K_DOWN]:
-                player1.move(PADDLE_SPEED)
+                frog.move(PLAYER_SPEED)
 
-            # Player 2 movement (right paddle)
+            # Princess movement (right player)
             if keys[pygame.K_w]:
-                player2.move(-PADDLE_SPEED)
+                princess.move(-PLAYER_SPEED)
             if keys[pygame.K_s]:
-                player2.move(PADDLE_SPEED)
+                princess.move(PLAYER_SPEED)
 
             # Ball movement
             ball.move()
@@ -140,22 +145,20 @@ def main():
             if ball.rect.top <= 0 or ball.rect.bottom >= HEIGHT:
                 ball.dy = -ball.dy
 
-            # Ball collision with paddles and color change
-            if ball.rect.colliderect(player1.rect):
+            # Ball collision with players and color change
+            if ball.rect.colliderect(frog.rect):
                 ball.dx = abs(ball.dx)  # Reverse direction
                 ball.color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))  # Random color for ball
-                player1.color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))  # Random color for paddle
-            if ball.rect.colliderect(player2.rect):
+            if ball.rect.colliderect(princess.rect):
                 ball.dx = -abs(ball.dx)  # Reverse direction
                 ball.color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))  # Random color for ball
-                player2.color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))  # Random color for paddle
 
             # Scoring
             if ball.rect.left <= 0:
-                player2_score += 1
+                princess_score += 1
                 ball = Ball()  # Reset ball with default color
             if ball.rect.right >= WIDTH:
-                player1_score += 1
+                frog_score += 1
                 ball = Ball()  # Reset ball with default color
 
             # Draw everything
@@ -167,14 +170,14 @@ def main():
 
             # Draw scores
             font = pygame.font.Font(None, 36)
-            player1_text = font.render(str(player1_score), True, WHITE)
-            player2_text = font.render(str(player2_score), True, WHITE)
-            screen.blit(player1_text, (WIDTH//4, 20))
-            screen.blit(player2_text, (3*WIDTH//4, 20))
+            frog_text = font.render(str(frog_score), True, WHITE)
+            princess_text = font.render(str(princess_score), True, WHITE)
+            screen.blit(frog_text, (WIDTH//4, 20))
+            screen.blit(princess_text, (3*WIDTH//4, 20))
 
             # Draw game objects
-            player1.draw()
-            player2.draw()
+            frog.draw()
+            princess.draw()
             ball.draw()
 
             pygame.display.flip()
