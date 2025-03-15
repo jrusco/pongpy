@@ -12,8 +12,7 @@ PADDLE_WIDTH = 15
 PADDLE_HEIGHT = 90
 BALL_SIZE = 15
 BALL_SPEED = 4
-PADDLE_SPEED = 6  # Increased from 5 to 6, making player slightly faster than ball
-AI_PADDLE_SPEED = 3
+PADDLE_SPEED = 6  # Speed for both players
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 
@@ -27,6 +26,7 @@ clock = pygame.time.Clock()
 class Paddle:
     def __init__(self, x, y):
         self.rect = pygame.Rect(x, y, PADDLE_WIDTH, PADDLE_HEIGHT)
+        self.color = WHITE  # Initial color
 
     def move(self, dy):
         self.rect.y += dy
@@ -37,7 +37,7 @@ class Paddle:
             self.rect.y = HEIGHT - PADDLE_HEIGHT
 
     def draw(self):
-        pygame.draw.rect(screen, WHITE, self.rect)
+        pygame.draw.rect(screen, self.color, self.rect)
 
 class Ball:
     def __init__(self):
@@ -46,20 +46,14 @@ class Ball:
                               BALL_SIZE, BALL_SIZE)
         self.dx = BALL_SPEED * random.choice((1, -1))
         self.dy = BALL_SPEED * random.choice((1, -1))
+        self.color = WHITE  # Initial color
 
     def move(self):
         self.rect.x += self.dx
         self.rect.y += self.dy
 
     def draw(self):
-        pygame.draw.rect(screen, WHITE, self.rect)
-
-def ai_movement(ball, paddle):
-    # Simple AI: move towards ball's y position with slower speed
-    if ball.rect.centery < paddle.rect.centery and paddle.rect.y > 0:
-        paddle.move(-AI_PADDLE_SPEED)
-    if ball.rect.centery > paddle.rect.centery and paddle.rect.y < HEIGHT - PADDLE_HEIGHT:
-        paddle.move(AI_PADDLE_SPEED)
+        pygame.draw.rect(screen, self.color, self.rect)
 
 def start_screen():
     screen.fill(BLACK)
@@ -67,20 +61,22 @@ def start_screen():
     title = font.render("Pong", True, WHITE)
     font = pygame.font.Font(None, 36)
     instruction = font.render("Press F to start/stop playing", True, WHITE)
+    controls = font.render("Player 1: UP/DOWN | Player 2: W/S", True, WHITE)
 
     screen.blit(title, (WIDTH//2 - title.get_width()//2, HEIGHT//3))
     screen.blit(instruction, (WIDTH//2 - instruction.get_width()//2, HEIGHT//2))
+    screen.blit(controls, (WIDTH//2 - controls.get_width()//2, HEIGHT//2 + 40))
     pygame.display.flip()
 
-def end_screen(player_score, ai_score, play_time):
+def end_screen(player1_score, player2_score, play_time):
     screen.fill(BLACK)
     font = pygame.font.Font(None, 50)
-    player_text = font.render(f"Player Score: {player_score}", True, WHITE)
-    ai_text = font.render(f"AI Score: {ai_score}", True, WHITE)
+    player1_text = font.render(f"Player 1 Score: {player1_score}", True, WHITE)
+    player2_text = font.render(f"Player 2 Score: {player2_score}", True, WHITE)
     time_text = font.render(f"Time Played: {play_time:.1f} seconds", True, WHITE)
 
-    screen.blit(player_text, (WIDTH//2 - player_text.get_width()//2, HEIGHT//3))
-    screen.blit(ai_text, (WIDTH//2 - ai_text.get_width()//2, HEIGHT//2))
+    screen.blit(player1_text, (WIDTH//2 - player1_text.get_width()//2, HEIGHT//3))
+    screen.blit(player2_text, (WIDTH//2 - player2_text.get_width()//2, HEIGHT//2))
     screen.blit(time_text, (WIDTH//2 - time_text.get_width()//2, 2*HEIGHT//3))
     pygame.display.flip()
     # Wait briefly to show the end screen (e.g., 2 seconds) before exiting
@@ -98,13 +94,13 @@ def main():
     start_screen()
 
     # Game objects
-    player = Paddle(50, HEIGHT//2 - PADDLE_HEIGHT//2)
-    ai = Paddle(WIDTH - 50 - PADDLE_WIDTH, HEIGHT//2 - PADDLE_HEIGHT//2)
+    player1 = Paddle(50, HEIGHT//2 - PADDLE_HEIGHT//2)  # Player 1 (left)
+    player2 = Paddle(WIDTH - 50 - PADDLE_WIDTH, HEIGHT//2 - PADDLE_HEIGHT//2)  # Player 2 (right)
     ball = Ball()
 
     # Scores
-    player_score = 0
-    ai_score = 0
+    player1_score = 0
+    player2_score = 0
 
     # Time tracking
     start_time = 0
@@ -121,18 +117,21 @@ def main():
                 elif game_started and not game_over:
                     game_over = True
                     play_time = time.time() - start_time
-                    end_screen(player_score, ai_score, play_time)
+                    end_screen(player1_score, player2_score, play_time)
 
         if game_started and not game_over:
-            # Player movement
+            # Player 1 movement (left paddle)
             keys = pygame.key.get_pressed()
             if keys[pygame.K_UP]:
-                player.move(-PADDLE_SPEED)
+                player1.move(-PADDLE_SPEED)
             if keys[pygame.K_DOWN]:
-                player.move(PADDLE_SPEED)
+                player1.move(PADDLE_SPEED)
 
-            # AI movement
-            ai_movement(ball, ai)
+            # Player 2 movement (right paddle)
+            if keys[pygame.K_w]:
+                player2.move(-PADDLE_SPEED)
+            if keys[pygame.K_s]:
+                player2.move(PADDLE_SPEED)
 
             # Ball movement
             ball.move()
@@ -141,19 +140,23 @@ def main():
             if ball.rect.top <= 0 or ball.rect.bottom >= HEIGHT:
                 ball.dy = -ball.dy
 
-            # Ball collision with paddles
-            if ball.rect.colliderect(player.rect):
-                ball.dx = abs(ball.dx)
-            if ball.rect.colliderect(ai.rect):
-                ball.dx = -abs(ball.dx)
+            # Ball collision with paddles and color change
+            if ball.rect.colliderect(player1.rect):
+                ball.dx = abs(ball.dx)  # Reverse direction
+                ball.color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))  # Random color for ball
+                player1.color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))  # Random color for paddle
+            if ball.rect.colliderect(player2.rect):
+                ball.dx = -abs(ball.dx)  # Reverse direction
+                ball.color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))  # Random color for ball
+                player2.color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))  # Random color for paddle
 
             # Scoring
             if ball.rect.left <= 0:
-                ai_score += 1
-                ball = Ball()
+                player2_score += 1
+                ball = Ball()  # Reset ball with default color
             if ball.rect.right >= WIDTH:
-                player_score += 1
-                ball = Ball()
+                player1_score += 1
+                ball = Ball()  # Reset ball with default color
 
             # Draw everything
             screen.fill(BLACK)
@@ -164,14 +167,14 @@ def main():
 
             # Draw scores
             font = pygame.font.Font(None, 36)
-            player_text = font.render(str(player_score), True, WHITE)
-            ai_text = font.render(str(ai_score), True, WHITE)
-            screen.blit(player_text, (WIDTH//4, 20))
-            screen.blit(ai_text, (3*WIDTH//4, 20))
+            player1_text = font.render(str(player1_score), True, WHITE)
+            player2_text = font.render(str(player2_score), True, WHITE)
+            screen.blit(player1_text, (WIDTH//4, 20))
+            screen.blit(player2_text, (3*WIDTH//4, 20))
 
             # Draw game objects
-            player.draw()
-            ai.draw()
+            player1.draw()
+            player2.draw()
             ball.draw()
 
             pygame.display.flip()
