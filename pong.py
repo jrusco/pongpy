@@ -44,11 +44,18 @@ class Player:
         screen.blit(self.image, self.rect)
 
 class Ball:
-    def __init__(self):
-        self.rect = pygame.Rect(WIDTH//2 - BALL_SIZE//2, 
-                              HEIGHT//2 - BALL_SIZE//2, 
-                              BALL_SIZE, BALL_SIZE)
-        self.dx = BALL_SPEED * random.choice((1, -1))
+    def __init__(self, from_right=None):
+        self.rect = pygame.Rect(0, HEIGHT//2 - BALL_SIZE//2, BALL_SIZE, BALL_SIZE)
+        
+        if from_right is None:
+            # Initial center position and random direction
+            self.rect.centerx = WIDTH//2
+            self.dx = BALL_SPEED * random.choice((1, -1))
+        else:
+            # Position based on scoring player
+            self.rect.x = WIDTH - 50 - BALL_SIZE if from_right else 50
+            self.dx = -BALL_SPEED if from_right else BALL_SPEED
+            
         self.dy = BALL_SPEED * random.choice((1, -1))
         self.color = WHITE  
 
@@ -115,9 +122,11 @@ def update_ball_position(ball, frog, princess):
 
 def check_scoring(ball, frog_score, princess_score):
     if ball.rect.left <= 0:
-        return frog_score, princess_score + 1, Ball()
+        show_score_message()
+        return frog_score, princess_score + 1, Ball(from_right=False)  # Ball starts from princess side
     if ball.rect.right >= WIDTH:
-        return frog_score + 1, princess_score, Ball()
+        show_score_message()
+        return frog_score + 1, princess_score, Ball(from_right=True)   # Ball starts from frog side
     return frog_score, princess_score, ball
 
 def draw_game_state(screen, frog, princess, ball, frog_score, princess_score):
@@ -134,6 +143,14 @@ def draw_game_state(screen, frog, princess, ball, frog_score, princess_score):
     princess.draw()
     ball.draw()
     pygame.display.flip()
+
+def show_score_message():
+    font = pygame.font.Font(None, 74)
+    score_text = font.render("SCORE!", True, WHITE)
+    text_rect = score_text.get_rect(center=(WIDTH//2, HEIGHT//4))
+    screen.blit(score_text, text_rect)
+    pygame.display.flip()
+    pygame.time.wait(500)  
 
 def main():
     game_started = False
