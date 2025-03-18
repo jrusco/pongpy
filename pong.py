@@ -2,14 +2,13 @@ import pygame
 import random
 import time
 
-# Initialize Pygame
 pygame.init()
 
 # Constants
 WIDTH = 800
 HEIGHT = 600
-SPRITE_WIDTH = 50  # Width of the sprite images
-SPRITE_HEIGHT = 90  # Height of the sprite images
+SPRITE_WIDTH = 100  
+SPRITE_HEIGHT = 180  
 BALL_SIZE = 15
 BALL_SPEED = 4
 PLAYER_SPEED = 6  # Speed for both players
@@ -51,7 +50,7 @@ class Ball:
                               BALL_SIZE, BALL_SIZE)
         self.dx = BALL_SPEED * random.choice((1, -1))
         self.dy = BALL_SPEED * random.choice((1, -1))
-        self.color = WHITE  # Initial color
+        self.color = WHITE  
 
     def move(self):
         self.rect.x += self.dx
@@ -84,9 +83,8 @@ def end_screen(frog_score, princess_score, play_time):
     screen.blit(princess_text, (WIDTH//2 - princess_text.get_width()//2, HEIGHT//2))
     screen.blit(time_text, (WIDTH//2 - time_text.get_width()//2, 2*HEIGHT//3))
     pygame.display.flip()
-    # Wait briefly to show the end screen (e.g., 2 seconds) before exiting
+    # Wait briefly to show the end screen before exiting
     pygame.time.wait(2000)
-    # Exit the application
     pygame.quit()
     exit()
 
@@ -114,7 +112,6 @@ def update_ball_position(ball, frog, princess):
     for player in (frog, princess):
         if ball.rect.colliderect(player.rect):
             ball.dx = abs(ball.dx) if player == frog else -abs(ball.dx)
-            ball.color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
 
 def check_scoring(ball, frog_score, princess_score):
     if ball.rect.left <= 0:
