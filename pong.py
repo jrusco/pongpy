@@ -90,24 +90,63 @@ def end_screen(frog_score, princess_score, play_time):
     pygame.quit()
     exit()
 
+def handle_game_state(event, game_started, game_over, start_time, frog_score, princess_score):
+    if event.type == pygame.KEYDOWN and event.key == pygame.K_f:
+        if not game_started:
+            return True, False, time.time()
+        elif game_started and not game_over:
+            play_time = time.time() - start_time
+            end_screen(frog_score, princess_score, play_time)
+    return game_started, game_over, start_time
+
+def handle_player_movement(frog, princess):
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_UP]: frog.move(-PLAYER_SPEED)
+    if keys[pygame.K_DOWN]: frog.move(PLAYER_SPEED)
+    if keys[pygame.K_w]: princess.move(-PLAYER_SPEED)
+    if keys[pygame.K_s]: princess.move(PLAYER_SPEED)
+
+def update_ball_position(ball, frog, princess):
+    ball.move()
+    if ball.rect.top <= 0 or ball.rect.bottom >= HEIGHT:
+        ball.dy = -ball.dy
+
+    for player in (frog, princess):
+        if ball.rect.colliderect(player.rect):
+            ball.dx = abs(ball.dx) if player == frog else -abs(ball.dx)
+            ball.color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+
+def check_scoring(ball, frog_score, princess_score):
+    if ball.rect.left <= 0:
+        return frog_score, princess_score + 1, Ball()
+    if ball.rect.right >= WIDTH:
+        return frog_score + 1, princess_score, Ball()
+    return frog_score, princess_score, ball
+
+def draw_game_state(screen, frog, princess, ball, frog_score, princess_score):
+    screen.fill(BLACK)
+    pygame.draw.line(screen, WHITE, (WIDTH//2, 0), (WIDTH//2, HEIGHT), 2)
+    pygame.draw.line(screen, WHITE, (0, HEIGHT - 10), (WIDTH, HEIGHT - 10), 2)
+
+    font = pygame.font.Font(None, 36)
+    for score, pos in [(frog_score, WIDTH//4), (princess_score, 3*WIDTH//4)]:
+        score_text = font.render(str(score), True, WHITE)
+        screen.blit(score_text, (pos, 20))
+
+    frog.draw()
+    princess.draw()
+    ball.draw()
+    pygame.display.flip()
+
 def main():
-    # Initial state
     game_started = False
     game_over = False
-
-    # Show start screen
     start_screen()
 
-    # Game objects
-    frog = Player(50, HEIGHT//2 - SPRITE_HEIGHT//2, "frog.png")  # Player 1 (left, frog)
-    princess = Player(WIDTH - 50 - SPRITE_WIDTH, HEIGHT//2 - SPRITE_HEIGHT//2, "princess.png")  # Player 2 (right, princess)
+    frog = Player(50, HEIGHT//2 - SPRITE_HEIGHT//2, "frog.png")
+    princess = Player(WIDTH - 50 - SPRITE_WIDTH, HEIGHT//2 - SPRITE_HEIGHT//2, "princess.png")
     ball = Ball()
-
-    # Scores
-    frog_score = 0
-    princess_score = 0
-
-    # Time tracking
+    frog_score = princess_score = 0
     start_time = 0
 
     running = True
@@ -115,72 +154,14 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_f:
-                if not game_started:
-                    game_started = True
-                    start_time = time.time()
-                elif game_started and not game_over:
-                    game_over = True
-                    play_time = time.time() - start_time
-                    end_screen(frog_score, princess_score, play_time)
+            game_started, game_over, start_time = handle_game_state(
+                event, game_started, game_over, start_time, frog_score, princess_score)
 
         if game_started and not game_over:
-            # Frog movement (left player)
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_UP]:
-                frog.move(-PLAYER_SPEED)
-            if keys[pygame.K_DOWN]:
-                frog.move(PLAYER_SPEED)
-
-            # Princess movement (right player)
-            if keys[pygame.K_w]:
-                princess.move(-PLAYER_SPEED)
-            if keys[pygame.K_s]:
-                princess.move(PLAYER_SPEED)
-
-            # Ball movement
-            ball.move()
-
-            # Ball collision with top and bottom
-            if ball.rect.top <= 0 or ball.rect.bottom >= HEIGHT:
-                ball.dy = -ball.dy
-
-            # Ball collision with players and color change
-            if ball.rect.colliderect(frog.rect):
-                ball.dx = abs(ball.dx)  # Reverse direction
-                ball.color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))  # Random color for ball
-            if ball.rect.colliderect(princess.rect):
-                ball.dx = -abs(ball.dx)  # Reverse direction
-                ball.color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))  # Random color for ball
-
-            # Scoring
-            if ball.rect.left <= 0:
-                princess_score += 1
-                ball = Ball()  # Reset ball with default color
-            if ball.rect.right >= WIDTH:
-                frog_score += 1
-                ball = Ball()  # Reset ball with default color
-
-            # Draw everything
-            screen.fill(BLACK)
-            # Draw center line
-            pygame.draw.line(screen, WHITE, (WIDTH//2, 0), (WIDTH//2, HEIGHT), 2)
-            # Draw bottom limit line
-            pygame.draw.line(screen, WHITE, (0, HEIGHT - 10), (WIDTH, HEIGHT - 10), 2)
-
-            # Draw scores
-            font = pygame.font.Font(None, 36)
-            frog_text = font.render(str(frog_score), True, WHITE)
-            princess_text = font.render(str(princess_score), True, WHITE)
-            screen.blit(frog_text, (WIDTH//4, 20))
-            screen.blit(princess_text, (3*WIDTH//4, 20))
-
-            # Draw game objects
-            frog.draw()
-            princess.draw()
-            ball.draw()
-
-            pygame.display.flip()
+            handle_player_movement(frog, princess)
+            update_ball_position(ball, frog, princess)
+            frog_score, princess_score, ball = check_scoring(ball, frog_score, princess_score)
+            draw_game_state(screen, frog, princess, ball, frog_score, princess_score)
 
         clock.tick(60)
 
