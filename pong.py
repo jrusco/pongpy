@@ -1,6 +1,7 @@
 import pygame
 import random
 import time
+import asyncio
 
 pygame.init()
 
@@ -156,7 +157,7 @@ def show_score_message():
     pygame.display.flip()
     pygame.time.wait(500)  
 
-def main():
+async def main():
     game_started = False
     game_over = False
     start_screen()
@@ -173,7 +174,6 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            # Updated to capture new handle_game_state return values
             game_started, game_over, start_time, frog_score, princess_score = handle_game_state(
                 event, game_started, game_over, start_time, frog_score, princess_score
             )
@@ -185,8 +185,9 @@ def main():
             draw_game_state(screen, frog, princess, ball, frog_score, princess_score)
 
         clock.tick(60)
+        await asyncio.sleep(0)  # Allow browser to process events
 
     pygame.quit()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
