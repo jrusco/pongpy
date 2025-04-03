@@ -90,19 +90,23 @@ def end_screen(frog_score, princess_score, play_time):
     screen.blit(princess_text, (WIDTH//2 - princess_text.get_width()//2, HEIGHT//2))
     screen.blit(time_text, (WIDTH//2 - time_text.get_width()//2, 2*HEIGHT//3))
     pygame.display.flip()
-    # Wait briefly to show the end screen before exiting
+    # Wait briefly, then return control to let handle_game_state restart
     pygame.time.wait(2000)
-    pygame.quit()
-    exit()
 
 def handle_game_state(event, game_started, game_over, start_time, frog_score, princess_score):
     if event.type == pygame.KEYDOWN and event.key == pygame.K_f:
         if not game_started:
-            return True, False, time.time()
+            # Start new game
+            return True, False, time.time(), frog_score, princess_score
         elif game_started and not game_over:
+            # End the current game and show end screen
             play_time = time.time() - start_time
             end_screen(frog_score, princess_score, play_time)
-    return game_started, game_over, start_time
+            return True, True, start_time, frog_score, princess_score
+        elif game_started and game_over:
+            # Restart the game (reset score and start time)
+            return True, False, time.time(), 0, 0
+    return game_started, game_over, start_time, frog_score, princess_score
 
 def handle_player_movement(frog, princess):
     keys = pygame.key.get_pressed()
@@ -160,7 +164,8 @@ def main():
     frog = Player(50, HEIGHT//2 - SPRITE_HEIGHT//2, "frog.png")
     princess = Player(WIDTH - 50 - SPRITE_WIDTH, HEIGHT//2 - SPRITE_HEIGHT//2, "princess.png")
     ball = Ball()
-    frog_score = princess_score = 0
+    frog_score = 0
+    princess_score = 0
     start_time = 0
 
     running = True
@@ -168,8 +173,10 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-            game_started, game_over, start_time = handle_game_state(
-                event, game_started, game_over, start_time, frog_score, princess_score)
+            # Updated to capture new handle_game_state return values
+            game_started, game_over, start_time, frog_score, princess_score = handle_game_state(
+                event, game_started, game_over, start_time, frog_score, princess_score
+            )
 
         if game_started and not game_over:
             handle_player_movement(frog, princess)
