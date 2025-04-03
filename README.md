@@ -1,5 +1,6 @@
 # pongpy
-Pong game made in Python
+
+Pong game made in Python. Play it at https://pong.rusco.dev/
 
 ## Setup
 
