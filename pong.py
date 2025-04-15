@@ -11,7 +11,7 @@ HEIGHT = 600
 SPRITE_WIDTH = 100  
 SPRITE_HEIGHT = 180  
 BALL_SIZE = 15
-BALL_SPEED = 4
+BALL_SPEED = 5
 PLAYER_SPEED = 6  # Speed for both players
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -123,7 +123,20 @@ def update_ball_position(ball, frog, princess):
 
     for player in (frog, princess):
         if ball.rect.colliderect(player.rect):
+            # Determine new horizontal direction based on which player
             ball.dx = abs(ball.dx) if player == frog else -abs(ball.dx)
+            
+            # Add randomness to vertical direction
+            random_factor = random.uniform(0.7, 1.3)
+            ball.dy = ball.dy * random_factor
+            
+            # Ensure vertical speed doesn't get too extreme
+            if abs(ball.dy) > BALL_SPEED * 1.5:
+                ball.dy = BALL_SPEED * 1.5 * (1 if ball.dy > 0 else -1)
+            
+            # Occasionally flip vertical direction for more unpredictability
+            if random.random() < 0.2:  # 20% chance
+                ball.dy = -ball.dy
 
 def check_scoring(ball, frog_score, princess_score):
     if ball.rect.left <= 0:
