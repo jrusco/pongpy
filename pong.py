@@ -32,6 +32,8 @@ class Player:
         self.image.set_colorkey((255, 255, 255))  # White background
         self.rect = self.image.get_rect(topleft=(x, y))
         self.color = WHITE  # Used for ball color change logic
+        # Create a mask for pixel-perfect collision detection
+        self.mask = pygame.mask.from_surface(self.image)
 
     def move(self, dy):
         self.rect.y += dy
@@ -122,21 +124,30 @@ def update_ball_position(ball, frog, princess):
         ball.dy = -ball.dy
 
     for player in (frog, princess):
+        # First, check for rectangle collision (fast)
         if ball.rect.colliderect(player.rect):
-            # Determine new horizontal direction based on which player
-            ball.dx = abs(ball.dx) if player == frog else -abs(ball.dx)
+            # Create a ball mask for the current position
+            ball_surface = pygame.Surface((BALL_SIZE, BALL_SIZE), pygame.SRCALPHA)
+            pygame.draw.rect(ball_surface, WHITE, (0, 0, BALL_SIZE, BALL_SIZE))
+            ball_mask = pygame.mask.from_surface(ball_surface)
             
-            # Add randomness to vertical direction
-            random_factor = random.uniform(0.7, 1.3)
-            ball.dy = ball.dy * random_factor
-            
-            # Ensure vertical speed doesn't get too extreme
-            if abs(ball.dy) > BALL_SPEED * 1.5:
-                ball.dy = BALL_SPEED * 1.5 * (1 if ball.dy > 0 else -1)
-            
-            # Occasionally flip vertical direction for more unpredictability
-            if random.random() < 0.2:  # 20% chance
-                ball.dy = -ball.dy
+            # Check for pixel-perfect collision
+            offset = (ball.rect.x - player.rect.x, ball.rect.y - player.rect.y)
+            if player.mask.overlap(ball_mask, offset):
+                # Determine new horizontal direction based on which player
+                ball.dx = abs(ball.dx) * 1.25 if player == frog else -abs(ball.dx) * 1.25
+                
+                # Add increased randomness to vertical direction
+                random_factor = random.uniform(0.6, 1.4)  # Increased range for more randomness
+                ball.dy = ball.dy * random_factor
+                
+                # Ensure vertical speed doesn't get too extreme
+                if abs(ball.dy) > BALL_SPEED * 1.5:
+                    ball.dy = BALL_SPEED * 1.5 * (1 if ball.dy > 0 else -1)
+                
+                # Increased chance to flip vertical direction for more unpredictability
+                if random.random() < 0.3:  # 30% chance (up from 20%)
+                    ball.dy = -ball.dy
 
 def check_scoring(ball, frog_score, princess_score):
     if ball.rect.left <= 0:
